@@ -350,57 +350,11 @@ THREE.AmmoDebugDrawer.prototype.getDebugMode = function() {
 
 },{}],4:[function(require,module,exports){
 module.exports={
-  "_from": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-  "_id": "cannon@0.6.2",
-  "_inBundle": false,
-  "_integrity": "sha1-kuhwtr7Hd8jqU3mcndOx2tmf0RU=",
-  "_location": "/cannon",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "git",
-    "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "name": "cannon",
-    "escapedName": "cannon",
-    "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "saveSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "fetchSpec": null,
-    "gitCommittish": "v0.6.2-dev1"
-  },
-  "_requiredBy": [
-    "/"
-  ],
-  "_resolved": "github:donmccurdy/cannon.js#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
-  "_spec": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
-  "_where": "/Users/donmccurdy/Documents/Projects/aframe-physics-system",
-  "author": {
-    "name": "Stefan Hedman",
-    "email": "schteppe@gmail.com",
-    "url": "http://steffe.se"
-  },
-  "bugs": {
-    "url": "https://github.com/schteppe/cannon.js/issues"
-  },
-  "bundleDependencies": false,
-  "dependencies": {},
-  "deprecated": false,
+  "name": "cannon",
+  "version": "0.6.2",
   "description": "A lightweight 3D physics engine written in JavaScript.",
-  "devDependencies": {
-    "browserify": "*",
-    "grunt": "~0.4.0",
-    "grunt-browserify": "^2.1.4",
-    "grunt-contrib-concat": "~0.1.3",
-    "grunt-contrib-jshint": "~0.1.1",
-    "grunt-contrib-nodeunit": "^0.4.1",
-    "grunt-contrib-uglify": "^0.5.1",
-    "grunt-contrib-yuidoc": "^0.5.2",
-    "jshint": "latest",
-    "nodeunit": "^0.9.0",
-    "uglify-js": "latest"
-  },
-  "engines": {
-    "node": "*"
-  },
   "homepage": "https://github.com/schteppe/cannon.js",
+  "author": "Stefan Hedman <schteppe@gmail.com> (http://steffe.se)",
   "keywords": [
     "cannon.js",
     "cannon",
@@ -408,20 +362,40 @@ module.exports={
     "engine",
     "3d"
   ],
+  "main": "./src/Cannon.js",
+  "engines": {
+    "node": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/schteppe/cannon.js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/schteppe/cannon.js/issues"
+  },
   "licenses": [
     {
       "type": "MIT"
     }
   ],
-  "main": "./src/Cannon.js",
-  "name": "cannon",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/schteppe/cannon.js.git"
+  "devDependencies": {
+    "jshint": "latest",
+    "uglify-js": "latest",
+    "nodeunit": "^0.9.0",
+    "grunt": "~0.4.0",
+    "grunt-contrib-jshint": "~0.1.1",
+    "grunt-contrib-nodeunit": "^0.4.1",
+    "grunt-contrib-concat": "~0.1.3",
+    "grunt-contrib-uglify": "^0.5.1",
+    "grunt-browserify": "^2.1.4",
+    "grunt-contrib-yuidoc": "^0.5.2",
+    "browserify": "*"
   },
-  "version": "0.6.2"
+  "dependencies": {},
+  "_resolved": "",
+  "_integrity": "",
+  "_from": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1"
 }
-
 },{}],5:[function(require,module,exports){
 // Export classes
 module.exports = {
@@ -14854,12 +14828,18 @@ const TYPE = (exports.TYPE = {
   HULL: "hull",
   HACD: "hacd", //Hierarchical Approximate Convex Decomposition
   VHACD: "vhacd", //Volumetric Hierarchical Approximate Convex Decomposition
-  MESH: "mesh"
+  MESH: "mesh",
+  HEIGHTFIELD: "heightfield"
 });
 
 const FIT = (exports.FIT = {
   ALL: "all", //A single shape is automatically sized to bound all meshes within the entity.
   MANUAL: "manual" //A single shape is sized manually. Requires halfExtents or sphereRadius.
+});
+
+const HEIGHTFIELD_DATA_TYPE = (exports.HEIGHTFIELD_DATA_TYPE = {
+  short: "short",
+  float: "float"
 });
 
 const hasUpdateMatricesFunction = THREE.Object3D.prototype.hasOwnProperty("updateMatrices");
@@ -14884,6 +14864,8 @@ exports.createCollisionShapes = function(root, options) {
       return this.createVHACDShapes(root, options);
     case TYPE.MESH:
       return [this.createTriMeshShape(root, options)];
+    case TYPE.HEIGHTFIELD:
+      return [this.createHeightfieldTerrainShape(root, options)];
     default:
       console.warn(options.type + " is not currently supported");
       return [];
@@ -14897,7 +14879,12 @@ exports.createBoxShape = function(root, options) {
   _setOptions(options);
 
   if (options.fit === FIT.ALL) {
-    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+    options.halfExtents = _computeHalfExtents(
+      root,
+      _computeBounds(root, options),
+      options.minHalfExtent,
+      options.maxHalfExtent
+    );
   }
 
   const btHalfExtents = new Ammo.btVector3(options.halfExtents.x, options.halfExtents.y, options.halfExtents.z);
@@ -14913,7 +14900,12 @@ exports.createCylinderShape = function(root, options) {
   _setOptions(options);
 
   if (options.fit === FIT.ALL) {
-    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+    options.halfExtents = _computeHalfExtents(
+      root,
+      _computeBounds(root, options),
+      options.minHalfExtent,
+      options.maxHalfExtent
+    );
   }
 
   const btHalfExtents = new Ammo.btVector3(options.halfExtents.x, options.halfExtents.y, options.halfExtents.z);
@@ -14939,7 +14931,12 @@ exports.createCapsuleShape = function(root, options) {
   _setOptions(options);
 
   if (options.fit === FIT.ALL) {
-    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+    options.halfExtents = _computeHalfExtents(
+      root,
+      _computeBounds(root, options),
+      options.minHalfExtent,
+      options.maxHalfExtent
+    );
   }
 
   const { x, y, z } = options.halfExtents;
@@ -14964,7 +14961,12 @@ exports.createConeShape = function(root, options) {
   _setOptions(options);
 
   if (options.fit === FIT.ALL) {
-    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+    options.halfExtents = _computeHalfExtents(
+      root,
+      _computeBounds(root, options),
+      options.minHalfExtent,
+      options.maxHalfExtent
+    );
   }
 
   const { x, y, z } = options.halfExtents;
@@ -14990,7 +14992,7 @@ exports.createSphereShape = function(root, options) {
   if (options.fit === FIT.MANUAL && !isNaN(options.sphereRadius)) {
     radius = options.sphereRadius;
   } else {
-    radius = _computeRadius(root, _computeBounds(root));
+    radius = _computeRadius(root, options, _computeBounds(root, options));
   }
 
   const collisionShape = new Ammo.btSphereShape(radius);
@@ -15001,7 +15003,6 @@ exports.createSphereShape = function(root, options) {
 
 exports.createHullShape = (function() {
   const vertex = new THREE.Vector3();
-  const center = new THREE.Vector3();
   return function(root, options) {
     options.type = TYPE.HULL;
     _setOptions(options);
@@ -15011,16 +15012,13 @@ exports.createHullShape = (function() {
       return null;
     }
 
-    const bounds = _computeBounds(root);
-
     const btVertex = new Ammo.btVector3();
     const originalHull = new Ammo.btConvexHullShape();
     originalHull.setMargin(options.margin);
-    center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
 
     let vertexCount = 0;
-    _iterateGeometries(root, geo => {
-      vertexCount += geo.attributes.position.array.length / 3;
+    _iterateGeometries(root, options, geo => {
+      vertexCount += geo.drawRange.count;
     });
 
     const maxVertices = options.hullMaxVertices || 100000;
@@ -15030,16 +15028,16 @@ exports.createHullShape = (function() {
     }
     const p = Math.min(1, maxVertices / vertexCount);
 
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
+      const length = geo.drawRange.count*3;
       const components = geo.attributes.position.array;
-      for (let i = 0; i < components.length; i += 3) {
+      for (let i = 0; i < length; i += 3) {
         if (Math.random() <= p) {
           vertex
             .set(components[i], components[i + 1], components[i + 2])
-            .applyMatrix4(transform)
-            .sub(center);
+            .applyMatrix4(transform);
           btVertex.setValue(vertex.x, vertex.y, vertex.z);
-          originalHull.addPoint(btVertex, i === components.length - 3); // todo: better to recalc AABB only on last geometry
+          originalHull.addPoint(btVertex, i === length - 3); // todo: better to recalc AABB only on last geometry
         }
       }
     });
@@ -15090,7 +15088,7 @@ exports.createHACDShapes = (function() {
     let triCount = 0;
     center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
 
-    _iterateGeometries(root, geo => {
+    _iterateGeometries(root, options, geo => {
       vertexCount += geo.attributes.position.array.length / 3;
       if (geo.index) {
         triCount += geo.index.array.length / 3;
@@ -15115,7 +15113,7 @@ exports.createHACDShapes = (function() {
 
     const pptr = points / 8,
       tptr = triangles / 4;
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
       const components = geo.attributes.position.array;
       const indices = geo.index ? geo.index.array : null;
       for (let i = 0; i < components.length; i += 3) {
@@ -15138,6 +15136,8 @@ exports.createHACDShapes = (function() {
     });
 
     hacd.Compute();
+    Ammo._free(points);
+    Ammo._free(triangles);
     const nClusters = hacd.GetNClusters();
 
     const shapes = [];
@@ -15188,14 +15188,14 @@ exports.createVHACDShapes = (function() {
       return [];
     }
 
-    const bounds = _computeBounds(root);
+    const bounds = _computeBounds(root, options);
     const scale = _computeScale(root, options);
 
     let vertexCount = 0;
     let triCount = 0;
     center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
 
-    _iterateGeometries(root, geo => {
+    _iterateGeometries(root, options, geo => {
       vertexCount += geo.attributes.position.count;
       if (geo.index) {
         triCount += geo.index.count / 3;
@@ -15229,7 +15229,7 @@ exports.createVHACDShapes = (function() {
 
     let pptr = points / 8,
       tptr = triangles / 4;
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
       const components = geo.attributes.position.array;
       const indices = geo.index ? geo.index.array : null;
       for (let i = 0; i < components.length; i += 3) {
@@ -15309,7 +15309,7 @@ exports.createTriMeshShape = (function() {
     const btc = new Ammo.btVector3();
     const triMesh = new Ammo.btTriangleMesh(true, false);
 
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
       const components = geo.attributes.position.array;
       if (geo.index) {
         for (let i = 0; i < geo.index.count; i += 3) {
@@ -15353,6 +15353,70 @@ exports.createTriMeshShape = (function() {
   };
 })();
 
+exports.createHeightfieldTerrainShape = function(root, options) {
+  _setOptions(options);
+
+  if (options.fit === FIT.ALL) {
+    console.warn("cannot use fit: all with type: heightfield");
+    return null;
+  }
+  const heightfieldDistance = options.heightfieldDistance || 1;
+  const heightfieldData = options.heightfieldData || [];
+  const heightScale = options.heightScale || 0;
+  const upAxis = options.hasOwnProperty("upAxis") ? options.upAxis : 1; // x = 0; y = 1; z = 2
+  const hdt = (() => {
+    switch (options.heightDataType) {
+      case "short":
+        return Ammo.PHY_SHORT;
+      case "float":
+        return Ammo.PHY_FLOAT;
+      default:
+        return Ammo.PHY_FLOAT;
+    }
+  })();
+  const flipQuadEdges = options.hasOwnProperty("flipQuadEdges") ? options.flipQuadEdges : true;
+
+  const heightStickLength = heightfieldData.length;
+  const heightStickWidth = heightStickLength > 0 ? heightfieldData[0].length : 0;
+
+  const data = Ammo._malloc(heightStickLength * heightStickWidth * 4);
+  const ptr = data / 4;
+
+  let minHeight = Number.POSITIVE_INFINITY;
+  let maxHeight = Number.NEGATIVE_INFINITY;
+  let index = 0;
+  for (let l = 0; l < heightStickLength; l++) {
+    for (let w = 0; w < heightStickWidth; w++) {
+      const height = heightfieldData[l][w];
+      Ammo.HEAPF32[ptr + index] = height;
+      index++;
+      minHeight = Math.min(minHeight, height);
+      maxHeight = Math.max(maxHeight, height);
+    }
+  }
+
+  const collisionShape = new Ammo.btHeightfieldTerrainShape(
+    heightStickWidth,
+    heightStickLength,
+    data,
+    heightScale,
+    minHeight,
+    maxHeight,
+    upAxis,
+    hdt,
+    flipQuadEdges
+  );
+
+  const scale = new Ammo.btVector3(heightfieldDistance, 1, heightfieldDistance);
+  collisionShape.setLocalScaling(scale);
+  Ammo.destroy(scale);
+
+  collisionShape.heightfieldData = data;
+
+  _finishCollisionShape(collisionShape, options);
+  return collisionShape;
+};
+
 function _setOptions(options) {
   options.fit = options.hasOwnProperty("fit") ? options.fit : FIT.ALL;
   options.type = options.type || TYPE.HULL;
@@ -15360,6 +15424,7 @@ function _setOptions(options) {
   options.maxHalfExtent = options.hasOwnProperty("maxHalfExtent") ? options.maxHalfExtent : Number.POSITIVE_INFINITY;
   options.cylinderAxis = options.cylinderAxis || "y";
   options.margin = options.hasOwnProperty("margin") ? options.margin : 0.01;
+  options.includeInvisible = options.hasOwnProperty("includeInvisible") ? options.includeInvisible : false;
 
   if (!options.offset) {
     options.offset = new THREE.Vector3();
@@ -15376,6 +15441,9 @@ const _finishCollisionShape = function(collisionShape, options, scale) {
   collisionShape.destroy = () => {
     for (let res of collisionShape.resources || []) {
       Ammo.destroy(res);
+    }
+    if (collisionShape.heightfieldData) {
+      Ammo._free(collisionShape.heightfieldData);
     }
     Ammo.destroy(collisionShape);
   };
@@ -15405,10 +15473,14 @@ const _iterateGeometries = (function() {
   const transform = new THREE.Matrix4();
   const inverse = new THREE.Matrix4();
   const bufferGeometry = new THREE.BufferGeometry();
-  return function(root, cb) {
+  return function(root, options, cb) {
     inverse.getInverse(root.matrixWorld);
     root.traverse(mesh => {
-      if (mesh.isMesh && (!THREE.Sky || mesh.__proto__ != THREE.Sky.prototype)) {
+      if (
+        mesh.isMesh &&
+        (!THREE.Sky || mesh.__proto__ != THREE.Sky.prototype) &&
+        (options.includeInvisible || mesh.el.object3D.visible)
+      ) {
         if (mesh === root) {
           transform.identity();
         } else {
@@ -15434,10 +15506,10 @@ const _computeScale = function(root, options) {
 const _computeRadius = (function() {
   const v = new THREE.Vector3();
   const center = new THREE.Vector3();
-  return function(root, bounds) {
+  return function(root, options, bounds) {
     let maxRadiusSq = 0;
     let { x: cx, y: cy, z: cz } = bounds.getCenter(center);
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
       const components = geo.attributes.position.array;
       for (let i = 0; i < components.length; i += 3) {
         v.set(components[i], components[i + 1], components[i + 2]).applyMatrix4(transform);
@@ -15470,7 +15542,7 @@ const _computeLocalOffset = function(matrix, bounds, target) {
 // returns the bounding box for the geometries underneath `root`.
 const _computeBounds = (function() {
   const v = new THREE.Vector3();
-  return function(root) {
+  return function(root, options) {
     const bounds = new THREE.Box3();
     let minX = +Infinity;
     let minY = +Infinity;
@@ -15480,7 +15552,7 @@ const _computeBounds = (function() {
     let maxZ = -Infinity;
     bounds.min.set(0, 0, 0);
     bounds.max.set(0, 0, 0);
-    _iterateGeometries(root, (geo, transform) => {
+    _iterateGeometries(root, options, (geo, transform) => {
       const components = geo.attributes.position.array;
       for (let i = 0; i < components.length; i += 3) {
         v.set(components[i], components[i + 1], components[i + 2]).applyMatrix4(transform);
