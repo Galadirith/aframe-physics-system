@@ -2,7 +2,7 @@
  * Velocity, in m/s.
  */
 module.exports = AFRAME.registerComponent('velocity', {
-  schema: {type: 'vec3'},
+  schema: {type: 'vec3', default: {x: 1, y: 0, z: 0}},
 
   init: function () {
     this.system = this.el.sceneEl.systems.physics;
