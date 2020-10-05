@@ -2,12 +2,12 @@ name: Build distribution
 on:
   push:
     branches:
-      - master
+      - deploy-master-examples-fork
     paths:
       - 'src/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'lib/**' 
+      - 'lib/**'
 jobs:
   build:
     runs-on: ubuntu-18.04
