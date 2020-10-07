@@ -2,7 +2,7 @@ name: Build distribution
 on:
   push:
     branches:
-      - master
+      - deploy-master-examples-conditional
     paths:
       - 'src/**'
       - 'package.json'
